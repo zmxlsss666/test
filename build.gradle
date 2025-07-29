@@ -1,12 +1,7 @@
-// 删除所有 repositories 配置，修改为：
 buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:7.0.4'
     }
-}
-
-allprojects {
-    // 这里也删除 repositories 配置
 }
 
 task clean(type: Delete) {
