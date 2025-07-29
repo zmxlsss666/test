@@ -9,31 +9,34 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false"
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Set up JDK 11
+      
+    - name: Setup JDK 11
       uses: actions/setup-java@v3
       with:
         java-version: '11'
         distribution: 'temurin'
         cache: 'gradle'
-
-    - name: Add Google Maven repository
-      run: |
-        echo "Adding Google Maven repository to settings.gradle"
-        sed -i "/repositoriesMode.set/a repositories {\n    google()\n    mavenCentral()\n}" settings.gradle
         
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
+    - name: Validate Gradle Wrapper
+      uses: gradle/wrapper-validation-action@v1
+      
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
     - name: Build with Gradle
-      run: ./gradlew assembleDebug --no-daemon --stacktrace
-
-    - name: Upload APK
+      run: |
+        ./gradlew clean
+        ./gradlew assembleDebug --no-daemon --stacktrace
+        
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
+      if: success()
       with:
         name: SaltPlayerRemote-APK
         path: app/build/outputs/apk/debug/app-debug.apk
