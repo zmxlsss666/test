@@ -15,6 +15,8 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.os.Handler; // FIXED: Added import
+import android.graphics.Bitmap; // FIXED: Added import
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -30,6 +32,7 @@ import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.net.InetSocketAddress; // FIXED: Added import
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -60,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
     private DeviceAdapter deviceAdapter;
     private String currentDeviceIP = "";
     private Timer playerStateTimer;
-    private Handler handler = new Handler();
+    private Handler handler = new Handler(); // FIXED: Handler import added
     private boolean isMuted = false;
     private boolean isPlaying = false;
     private int currentPosition = 0;
@@ -205,12 +208,12 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
                 Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
                 for (NetworkInterface iface : Collections.list(interfaces)) {
                     if (iface.isLoopback() || !iface.isUp()) continue;
-                    
+
                     for (InterfaceAddress address : iface.getInterfaceAddresses()) {
                         InetAddress inetAddr = address.getAddress();
                         if (!inetAddr.isLoopbackAddress() && inetAddr instanceof java.net.Inet4Address) {
                             ipAddress = inetAddr.getHostAddress();
-                            subnetMask = formatIpAddress(address.getNetworkPrefixLength());
+                            subnetMask = formatPrefixLength(address.getNetworkPrefixLength()); // FIXED: Use renamed method
                             break;
                         }
                     }
@@ -265,8 +268,8 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
                 (ip >> 24 & 0xff));
     }
 
-    // 根据前缀长度计算子网掩码
-    private String formatIpAddress(int prefixLength) {
+    // 根据前缀长度计算子网掩码（FIXED: Renamed to avoid conflict）
+    private String formatPrefixLength(int prefixLength) {
         int value = 0xffffffff << (32 - prefixLength);
         return String.format("%d.%d.%d.%d",
                 (value >> 24 & 0xff),
@@ -279,10 +282,10 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
     public void onDeviceClick(NetworkDevice device) {
         currentDeviceIP = device.getIp();
         playerSection.setVisibility(View.VISIBLE);
-        
+
         // 停止之前的定时器
         stopPlayerStateTimer();
-        
+
         // 启动新的定时器
         startPlayerStateTimer();
         updatePlayerState();
@@ -293,7 +296,7 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
             Toast.makeText(this, "未选择设备", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
         ApiClient.togglePlayPause(currentDeviceIP, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JSONObject response) {
@@ -307,20 +310,41 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() -> 
-                    Toast.makeText(MainActivity.this, "操作失败: " + message, Toast.LENGTH_SHORT).show()
+                runOnUiThread(() ->
+                        Toast.makeText(MainActivity.this, "操作失败: " + message, Toast.LENGTH_SHORT).show()
                 );
             }
         });
     }
 
-    // 其他控制方法（playPreviousTrack, playNextTrack等）保持类似结构
+    // FIXED: Add missing stub methods
+    private void playPreviousTrack() {
+        // TODO: Implement previous track functionality
+        Toast.makeText(this, "playPreviousTrack called", Toast.LENGTH_SHORT).show();
+    }
+
+    private void playNextTrack() {
+        // TODO: Implement next track functionality
+        Toast.makeText(this, "playNextTrack called", Toast.LENGTH_SHORT).show();
+    }
+
+    private void toggleMute() {
+        // TODO: Implement mute toggle functionality
+        isMuted = !isMuted;
+        updateMuteButton();
+        Toast.makeText(this, "toggleMute called", Toast.LENGTH_SHORT).show();
+    }
+
+    private void volumeUp() {
+        // TODO: Implement volume up functionality
+        Toast.makeText(this, "volumeUp called", Toast.LENGTH_SHORT).show();
+    }
 
     private void updatePlayerState() {
         if (currentDeviceIP.isEmpty()) {
             return;
         }
-        
+
         ApiClient.getNowPlaying(currentDeviceIP, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JSONObject response) {
@@ -388,8 +412,8 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() -> 
-                    Toast.makeText(MainActivity.this, "获取播放状态失败: " + message, Toast.LENGTH_SHORT).show()
+                runOnUiThread(() ->
+                        Toast.makeText(MainActivity.this, "获取播放状态失败: " + message, Toast.LENGTH_SHORT).show()
                 );
             }
         });
