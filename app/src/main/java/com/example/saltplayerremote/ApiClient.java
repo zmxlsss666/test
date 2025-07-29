@@ -18,7 +18,7 @@ public class ApiClient {
     }
 
     // 所有API方法保持相同结构，但增强错误处理
-    
+
     private static void sendRequest(String urlString, ApiCallback callback) {
         new Thread(() -> {
             HttpURLConnection connection = null;
@@ -57,5 +57,16 @@ public class ApiClient {
                 }
             }
         }).start();
+    }
+
+    // FIXED: Added missing methods
+    public static void togglePlayPause(String ip, ApiCallback callback) {
+        String url = "http://" + ip + ":35373/togglePlayPause";
+        sendRequest(url, callback);
+    }
+
+    public static void getNowPlaying(String ip, ApiCallback callback) {
+        String url = "http://" + ip + ":35373/getNowPlaying";
+        sendRequest(url, callback);
     }
 }
