@@ -1,19 +1,12 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
+// 删除所有 repositories 配置，修改为：
 buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
     dependencies {
         classpath 'com.android.tools.build:gradle:7.0.4'
     }
 }
 
 allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
+    // 这里也删除 repositories 配置
 }
 
 task clean(type: Delete) {
