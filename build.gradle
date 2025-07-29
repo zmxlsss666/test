@@ -1,6 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     repositories {
+        // 只保留这些仓库声明
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -10,12 +11,7 @@ buildscript {
     }
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
+// 完全删除 allprojects 块
 
 task clean(type: Delete) {
     delete rootProject.buildDir
