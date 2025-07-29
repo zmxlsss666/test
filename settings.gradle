@@ -1,8 +1,17 @@
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // 配置依赖仓库（用于项目依赖，如 appcompat、material 等）
         google()
         mavenCentral()
+    }
+    pluginManagement {
+        repositories {
+            // 配置插件仓库（用于下载 Gradle 插件，如 com.android.application）
+            gradlePluginPortal()
+            google()
+            mavenCentral()
+        }
     }
 }
 rootProject.name = "SaltPlayerRemote"
