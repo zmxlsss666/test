@@ -17,7 +17,34 @@ public class ApiClient {
         void onError(String message);
     }
 
-    // 所有API方法保持相同结构，但增强错误处理
+    // 严格按照提供的API端点
+    public static void getNowPlaying(String ip, ApiCallback callback) {
+        sendRequest("http://" + ip + "/api/now-playing", callback);
+    }
+
+    public static void togglePlayPause(String ip, ApiCallback callback) {
+        sendRequest("http://" + ip + "/api/play-pause", callback);
+    }
+
+    public static void playNextTrack(String ip, ApiCallback callback) {
+        sendRequest("http://" + ip + "/api/next-track", callback);
+    }
+
+    public static void playPreviousTrack(String ip, ApiCallback callback) {
+        sendRequest("http://" + ip + "/api/previous-track", callback);
+    }
+
+    public static void volumeUp(String ip, ApiCallback callback) {
+        sendRequest("http://" + ip + "/api/volume/up", callback);
+    }
+
+    public static void volumeDown(String ip, ApiCallback callback) {
+        sendRequest("http://" + ip + "/api/volume/down", callback);
+    }
+
+    public static void toggleMute(String ip, ApiCallback callback) {
+        sendRequest("http://" + ip + "/api/mute", callback);
+    }
 
     private static void sendRequest(String urlString, ApiCallback callback) {
         new Thread(() -> {
@@ -26,8 +53,8 @@ public class ApiClient {
                 URL url = new URL(urlString);
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(5000);
+                connection.setConnectTimeout(3000);
+                connection.setReadTimeout(3000);
 
                 int responseCode = connection.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -57,16 +84,5 @@ public class ApiClient {
                 }
             }
         }).start();
-    }
-
-    // FIXED: Added missing methods
-    public static void togglePlayPause(String ip, ApiCallback callback) {
-        String url = "http://" + ip + ":35373/togglePlayPause";
-        sendRequest(url, callback);
-    }
-
-    public static void getNowPlaying(String ip, ApiCallback callback) {
-        String url = "http://" + ip + ":35373/getNowPlaying";
-        sendRequest(url, callback);
     }
 }
