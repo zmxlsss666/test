@@ -1,22 +1,25 @@
 package com.example.saltplayerremote;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.net.ConnectivityManager;
 import android.net.DhcpInfo;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.os.Handler; // FIXED: Added import
-import android.graphics.Bitmap; // FIXED: Added import
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -32,7 +35,6 @@ import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.net.InetSocketAddress; // FIXED: Added import
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -43,27 +45,27 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnDeviceClickListener {
 
     // 视图变量声明
-    private Button btnScan;
+    private Button btnScan, btnConnectCustom;
+    private EditText etCustomIp;
     private TextView tvScanStatus;
     private RecyclerView deviceList;
     private LinearLayout playerSection, lyricsSection;
     private ImageView albumArt;
     private TextView tvLyrics, tvSongTitle, tvArtist, tvCurrentTime, tvTotalTime, tvFullLyrics;
     private SeekBar seekBar, volumeBar;
-    private ImageButton btnPrev, btnPlayPause, btnNext, btnMute, btnVolumeUp, fabRefresh;
+    private ImageButton btnPrev, btnPlayPause, btnNext, btnMute, btnVolumeUp, btnVolumeDown, fabRefresh;
 
     // 数据变量
     private List<NetworkDevice> devices = new ArrayList<>();
     private DeviceAdapter deviceAdapter;
     private String currentDeviceIP = "";
     private Timer playerStateTimer;
-    private Handler handler = new Handler(); // FIXED: Handler import added
+    private Handler handler = new Handler();
     private boolean isMuted = false;
     private boolean isPlaying = false;
     private int currentPosition = 0;
@@ -83,21 +85,38 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
         deviceList.setAdapter(deviceAdapter);
 
         btnScan.setOnClickListener(v -> scanNetworkDevices());
+        btnConnectCustom.setOnClickListener(v -> connectCustomIp());
         btnPlayPause.setOnClickListener(v -> togglePlayPause());
         btnPrev.setOnClickListener(v -> playPreviousTrack());
         btnNext.setOnClickListener(v -> playNextTrack());
         btnMute.setOnClickListener(v -> toggleMute());
         btnVolumeUp.setOnClickListener(v -> volumeUp());
+        btnVolumeDown.setOnClickListener(v -> volumeDown());
         fabRefresh.setOnClickListener(v -> {
             if (!currentDeviceIP.isEmpty()) {
                 updatePlayerState();
             }
         });
 
+        // IP输入验证
+        etCustomIp.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String ip = s.toString();
+                btnConnectCustom.setEnabled(isValidIp(ip));
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
         volumeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
+                if (fromUser && !currentDeviceIP.isEmpty()) {
                     setVolume(progress / 100.0f);
                 }
             }
@@ -112,6 +131,8 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
 
     private void initViews() {
         btnScan = findViewById(R.id.btnScan);
+        etCustomIp = findViewById(R.id.etCustomIp);
+        btnConnectCustom = findViewById(R.id.btnConnectCustom);
         tvScanStatus = findViewById(R.id.tvScanStatus);
         deviceList = findViewById(R.id.deviceList);
         playerSection = findViewById(R.id.playerSection);
@@ -130,7 +151,49 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
         btnNext = findViewById(R.id.btnNext);
         btnMute = findViewById(R.id.btnMute);
         btnVolumeUp = findViewById(R.id.btnVolumeUp);
+        btnVolumeDown = findViewById(R.id.btnVolumeDown);
         fabRefresh = findViewById(R.id.fabRefresh);
+        
+        // 初始禁用自定义连接按钮
+        btnConnectCustom.setEnabled(false);
+    }
+
+    // 连接自定义IP
+    private void connectCustomIp() {
+        String ip = etCustomIp.getText().toString().trim();
+        if (!isValidIp(ip)) {
+            Toast.makeText(this, "请输入有效的IP地址", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // 验证IP是否有效
+        new Thread(() -> {
+            try {
+                Socket socket = new Socket();
+                socket.connect(new InetSocketAddress(ip, 35373), 1000);
+                socket.close();
+                
+                runOnUiThread(() -> {
+                    devices.add(new NetworkDevice(ip, "自定义设备"));
+                    deviceAdapter.notifyDataSetChanged();
+                    currentDeviceIP = ip;
+                    playerSection.setVisibility(View.VISIBLE);
+                    startPlayerStateTimer();
+                    updatePlayerState();
+                    tvScanStatus.setText("已连接到自定义设备: " + ip);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> 
+                    Toast.makeText(MainActivity.this, "无法连接到设备: " + ip, Toast.LENGTH_SHORT).show()
+                );
+            }
+        }).start();
+    }
+    
+    // 验证IP格式
+    private boolean isValidIp(String ip) {
+        String ipPattern = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+        return Pattern.matches(ipPattern, ip);
     }
 
     private void scanNetworkDevices() {
@@ -208,12 +271,12 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
                 Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
                 for (NetworkInterface iface : Collections.list(interfaces)) {
                     if (iface.isLoopback() || !iface.isUp()) continue;
-
+                    
                     for (InterfaceAddress address : iface.getInterfaceAddresses()) {
                         InetAddress inetAddr = address.getAddress();
                         if (!inetAddr.isLoopbackAddress() && inetAddr instanceof java.net.Inet4Address) {
                             ipAddress = inetAddr.getHostAddress();
-                            subnetMask = formatPrefixLength(address.getNetworkPrefixLength()); // FIXED: Use renamed method
+                            subnetMask = formatIpAddress(address.getNetworkPrefixLength());
                             break;
                         }
                     }
@@ -268,8 +331,8 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
                 (ip >> 24 & 0xff));
     }
 
-    // 根据前缀长度计算子网掩码（FIXED: Renamed to avoid conflict）
-    private String formatPrefixLength(int prefixLength) {
+    // 根据前缀长度计算子网掩码
+    private String formatIpAddress(int prefixLength) {
         int value = 0xffffffff << (32 - prefixLength);
         return String.format("%d.%d.%d.%d",
                 (value >> 24 & 0xff),
@@ -282,27 +345,34 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
     public void onDeviceClick(NetworkDevice device) {
         currentDeviceIP = device.getIp();
         playerSection.setVisibility(View.VISIBLE);
-
+        
         // 停止之前的定时器
         stopPlayerStateTimer();
-
+        
         // 启动新的定时器
         startPlayerStateTimer();
         updatePlayerState();
+        tvScanStatus.setText("已连接到: " + currentDeviceIP);
     }
 
+    // 播放/暂停
     private void togglePlayPause() {
         if (currentDeviceIP.isEmpty()) {
             Toast.makeText(this, "未选择设备", Toast.LENGTH_SHORT).show();
             return;
         }
-
+        
         ApiClient.togglePlayPause(currentDeviceIP, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JSONObject response) {
                 try {
                     isPlaying = response.getBoolean("isPlaying");
-                    updatePlayPauseButton();
+                    runOnUiThread(() -> updatePlayPauseButton());
+                    
+                    String message = isPlaying ? "已播放" : "已暂停";
+                    runOnUiThread(() -> 
+                        Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show()
+                    );
                 } catch (JSONException e) {
                     Log.e("API", "解析播放状态失败", e);
                 }
@@ -310,41 +380,176 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() ->
-                        Toast.makeText(MainActivity.this, "操作失败: " + message, Toast.LENGTH_SHORT).show()
+                runOnUiThread(() -> 
+                    Toast.makeText(MainActivity.this, "操作失败: " + message, Toast.LENGTH_SHORT).show()
                 );
             }
         });
     }
 
-    // FIXED: Add missing stub methods
+    // 上一曲
     private void playPreviousTrack() {
-        // TODO: Implement previous track functionality
-        Toast.makeText(this, "playPreviousTrack called", Toast.LENGTH_SHORT).show();
+        if (currentDeviceIP.isEmpty()) {
+            Toast.makeText(this, "未选择设备", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        ApiClient.playPreviousTrack(currentDeviceIP, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                runOnUiThread(() -> {
+                    try {
+                        String newTrack = response.getString("newTrack");
+                        Toast.makeText(MainActivity.this, "已切换到上一曲: " + newTrack, Toast.LENGTH_SHORT).show();
+                    } catch (JSONException e) {
+                        Toast.makeText(MainActivity.this, "已切换到上一曲", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                updatePlayerState();
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> 
+                    Toast.makeText(MainActivity.this, "上一曲失败: " + message, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
     }
 
+    // 下一曲
     private void playNextTrack() {
-        // TODO: Implement next track functionality
-        Toast.makeText(this, "playNextTrack called", Toast.LENGTH_SHORT).show();
+        if (currentDeviceIP.isEmpty()) {
+            Toast.makeText(this, "未选择设备", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        ApiClient.playNextTrack(currentDeviceIP, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                runOnUiThread(() -> {
+                    try {
+                        String newTrack = response.getString("newTrack");
+                        Toast.makeText(MainActivity.this, "已切换到下一曲: " + newTrack, Toast.LENGTH_SHORT).show();
+                    } catch (JSONException e) {
+                        Toast.makeText(MainActivity.this, "已切换到下一曲", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                updatePlayerState();
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> 
+                    Toast.makeText(MainActivity.this, "下一曲失败: " + message, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
     }
 
+    // 静音切换
     private void toggleMute() {
-        // TODO: Implement mute toggle functionality
-        isMuted = !isMuted;
-        updateMuteButton();
-        Toast.makeText(this, "toggleMute called", Toast.LENGTH_SHORT).show();
+        if (currentDeviceIP.isEmpty()) {
+            Toast.makeText(this, "未选择设备", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        ApiClient.toggleMute(currentDeviceIP, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                try {
+                    isMuted = response.getBoolean("isMuted");
+                    runOnUiThread(() -> {
+                        updateMuteButton();
+                        String message = isMuted ? "已静音" : "已取消静音";
+                        Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+                    });
+                } catch (JSONException e) {
+                    Log.e("API", "解析静音状态失败", e);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> 
+                    Toast.makeText(MainActivity.this, "静音操作失败: " + message, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
     }
 
+    // 音量增加
     private void volumeUp() {
-        // TODO: Implement volume up functionality
-        Toast.makeText(this, "volumeUp called", Toast.LENGTH_SHORT).show();
+        if (currentDeviceIP.isEmpty()) {
+            Toast.makeText(this, "未选择设备", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        ApiClient.volumeUp(currentDeviceIP, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                try {
+                    float volume = (float) response.getDouble("currentVolume");
+                    runOnUiThread(() -> {
+                        volumeBar.setProgress((int) (volume * 100));
+                        Toast.makeText(MainActivity.this, "音量已增加", Toast.LENGTH_SHORT).show();
+                    });
+                } catch (JSONException e) {
+                    Log.e("API", "解析音量失败", e);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> 
+                    Toast.makeText(MainActivity.this, "音量增加失败: " + message, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
     }
 
+    // 音量减少
+    private void volumeDown() {
+        if (currentDeviceIP.isEmpty()) {
+            Toast.makeText(this, "未选择设备", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        ApiClient.volumeDown(currentDeviceIP, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                try {
+                    float volume = (float) response.getDouble("currentVolume");
+                    runOnUiThread(() -> {
+                        volumeBar.setProgress((int) (volume * 100));
+                        Toast.makeText(MainActivity.this, "音量已减少", Toast.LENGTH_SHORT).show();
+                    });
+                } catch (JSONException e) {
+                    Log.e("API", "解析音量失败", e);
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                runOnUiThread(() -> 
+                    Toast.makeText(MainActivity.this, "音量减少失败: " + message, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+
+    // 设置音量
+    private void setVolume(float volume) {
+        // 这里可以添加直接设置音量的API调用
+        // 当前API只支持增加/减少，所以这里不实现
+    }
+
+    // 更新播放器状态
     private void updatePlayerState() {
         if (currentDeviceIP.isEmpty()) {
             return;
         }
-
+        
         ApiClient.getNowPlaying(currentDeviceIP, new ApiClient.ApiCallback() {
             @Override
             public void onSuccess(JSONObject response) {
@@ -353,8 +558,8 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
                     String artist = response.getString("artist");
                     isPlaying = response.getBoolean("isPlaying");
                     currentPosition = response.getInt("position");
-                    totalDuration = 300000; // 示例值
                     float volume = (float) response.getDouble("volume");
+                    long timestamp = response.getLong("timestamp");
 
                     runOnUiThread(() -> {
                         try {
@@ -412,14 +617,16 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
 
             @Override
             public void onError(String message) {
-                runOnUiThread(() ->
-                        Toast.makeText(MainActivity.this, "获取播放状态失败: " + message, Toast.LENGTH_SHORT).show()
+                runOnUiThread(() -> 
+                    Toast.makeText(MainActivity.this, "获取播放状态失败: " + message, Toast.LENGTH_SHORT).show()
                 );
             }
         });
     }
 
     private void updateSeekBarState() {
+        // 设置总时长（示例值，实际应从API获取）
+        totalDuration = 300000;
         seekBar.setMax(totalDuration);
         seekBar.setProgress(currentPosition);
         tvCurrentTime.setText(formatTime(currentPosition));
@@ -459,10 +666,6 @@ public class MainActivity extends AppCompatActivity implements DeviceAdapter.OnD
             playerStateTimer.cancel();
             playerStateTimer = null;
         }
-    }
-
-    private void setVolume(float volume) {
-        // 音量调整逻辑
     }
 
     @Override
