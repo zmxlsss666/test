@@ -38,8 +38,8 @@ task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest']) {
     description = 'Generate Jacoco coverage reports'
 
     reports {
-        xml.enabled = true
-        html.enabled = true
+        xml.required.set(true)
+        html.required.set(true)
     }
 
     def fileFilter = [
