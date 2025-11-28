@@ -62,7 +62,6 @@ dependencies {
     implementation "androidx.wear.watchface:watchface-complications-data-source-ktx:${rootProject.ext.watchfaceVersion}"
     
     // Samsung Rotery Support
-    implementation "com.samsung.wearable.rotary:rotary:1.0.0"
     implementation "com.google.android.wearable:wearable:2.9.0"
     compileOnly "com.google.android.wearable:wearable:2.9.0"
     
