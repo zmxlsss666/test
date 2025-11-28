@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">番茄阅读器</string>
+    <string name="bookshelf">书架</string>
+    <string name="reading">阅读</string>
+    <string name="bookmarks">书签</string>
+    <string name="search">搜索</string>
+    <string name="settings">设置</string>
+    <string name="no_books_found">未找到书籍</string>
+    <string name="loading">加载中...</string>
+    <string name="error_occurred">发生错误</string>
+    <string name="retry">重试</string>
+    <string name="add_to_bookshelf">添加到书架</string>
+    <string name="remove_from_bookshelf">从书架移除</string>
+    <string name="start_reading">开始阅读</string>
+    <string name="previous_chapter">上一章</string>
+    <string name="next_chapter">下一章</string>
+    <string name="add_bookmark">添加书签</string>
+    <string name="remove_bookmark">删除书签</string>
+    <string name="bookmark_added">书签已添加</string>
+    <string name="bookmark_removed">书签已删除</string>
+    <string name="chapter_list">章节列表</string>
+    <string name="scroll_to_top">滚动到顶部</string>
+</resources>

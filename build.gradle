@@ -1,0 +1,39 @@
+// Top-level build file where you can add configuration options common to all sub-modules.
+plugins {
+    id 'com.android.application' version '8.1.2' apply false
+    id 'com.android.library' version '8.1.2' apply false
+    id 'org.jetbrains.kotlin.android' version '1.9.10' apply false
+    id 'com.google.dagger.hilt.android' version '2.48' apply false
+    id 'kotlin-kapt' apply false
+    id 'io.gitlab.arturbosch.detekt' version '1.23.3' apply false
+    id 'org.jlleitschuh.gradle.ktlint' version '11.5.0' apply false
+    id 'jacoco' apply false
+}
+
+ext {
+    compileSdkVersion = 34
+    minSdkVersion = 24
+    targetSdkVersion = 34
+    versionCode = 1
+    versionName = "1.0.0"
+    
+    // Dependency versions
+    composeBomVersion = '2023.10.01'
+    composeCompilerVersion = '1.5.4'
+    composeNavigationVersion = '2.7.4'
+    hiltVersion = '2.48'
+    roomVersion = '2.6.0'
+    retrofitVersion = '2.9.0'
+    okhttpVersion = '4.12.0'
+    lifecycleVersion = '2.7.0'
+    activityComposeVersion = '1.8.0'
+    wearComposeVersion = '1.2.0'
+    wearTilesVersion = '1.2.0'
+    watchfaceVersion = '1.1.1'
+    coroutineVersion = '1.7.3'
+}
+
+// Apply quality configuration to all subprojects
+subprojects {
+    apply from: "$rootDir/config/quality.gradle"
+}

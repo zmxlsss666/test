@@ -1,0 +1,97 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'dagger.hilt.android.plugin'
+}
+
+android {
+    namespace 'com.tomatoreader.wear'
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        applicationId "com.tomatoreader.wear"
+        minSdk 30
+        targetSdk rootProject.ext.targetSdkVersion
+        versionCode rootProject.ext.versionCode
+        versionName rootProject.ext.versionName
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables {
+            useSupportLibrary true
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+    
+    buildFeatures {
+        compose true
+    }
+    
+    composeOptions {
+        kotlinCompilerExtensionVersion rootProject.ext.composeCompilerVersion
+    }
+    
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+}
+
+dependencies {
+    // Wear OS
+    implementation "androidx.wear.compose:compose-material:${rootProject.ext.wearComposeVersion}"
+    implementation "androidx.wear.compose:compose-navigation:${rootProject.ext.wearComposeVersion}"
+    implementation "androidx.wear.compose:compose-foundation:${rootProject.ext.wearComposeVersion}"
+    implementation "androidx.wear.tiles:tiles-material:${rootProject.ext.wearTilesVersion}"
+    implementation "androidx.wear.watchface:watchface-complications-data-source-ktx:${rootProject.ext.watchfaceVersion}"
+    
+    // Samsung Rotery Support
+    implementation "com.samsung.wearable.rotary:rotary:1.0.0"
+    implementation "com.google.android.wearable:wearable:2.9.0"
+    compileOnly "com.google.android.wearable:wearable:2.9.0"
+    
+    // Core Android
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:' + rootProject.ext.lifecycleVersion
+    implementation 'androidx.activity:activity-compose:' + rootProject.ext.activityComposeVersion
+    
+    // Compose
+    implementation platform("androidx.compose:compose-bom:${rootProject.ext.composeBomVersion}")
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    
+    // Hilt
+    implementation "com.google.dagger:hilt-android:${rootProject.ext.hiltVersion}"
+    implementation 'androidx.hilt:hilt-navigation-compose:1.1.0'
+    kapt "com.google.dagger:hilt-compiler:${rootProject.ext.hiltVersion}"
+    
+    // Coroutines
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:${rootProject.ext.coroutineVersion}"
+    
+    // Core module
+    implementation project(':core')
+    
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation platform("androidx.compose:compose-bom:${rootProject.ext.composeBomVersion}")
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+}
